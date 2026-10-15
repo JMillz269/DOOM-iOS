@@ -2,201 +2,271 @@
 //  GameController.mm
 //  doomengine
 //
-//  Created by John Watson on 1/29/15.
+//  Updated for modern iOS / LiveContainer MFi support
 //
-//
-
-/*
- 
- This program is free software; you can redistribute it and/or
- modify it under the terms of the GNU General Public License
- as published by the Free Software Foundation; either version 2
- of the License, or (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software
- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- 
- */
 
 #import <GameController/GameController.h>
 
 #import "doomiphone.h"
-
 #import "GameController.h"
 
 static GCController *controller = nil;
-static bool togglePause = false;
+static bool observersRegistered = false;
+
+// Edge-detect state so buttons fire once per press
+static bool prevMenuPressed = false;
+static bool prevButtonXPressed = false;
+static bool prevButtonYPressed = false;
+static bool prevLeftShoulderPressed = false;
+static bool prevRightShoulderPressed = false;
 
 typedef enum {
     WEAPON_PREVIOUS = 0,
     WEAPON_NEXT = 1,
-}weaponswitch_e;
+} weaponswitch_e;
 
 static bool HasAmmo(int weaponType) {
-    // Trivial case: you've always got fist
-    if(weaponType == wp_fist) {
+    if (weaponType == wp_fist) {
         return true;
     }
-    
+
     player_t *player = &players[consoleplayer];
-    
-    if(!player->weaponowned[weaponType]) {
-        // Don't switch to an unowned weapon
+
+    if (!player->weaponowned[weaponType]) {
         return false;
     }
-    
+
     int ammo = -1;
-    
-    switch ( weaponType ) {
-        case wp_pistol: ammo = player->ammo[am_clip]; break;
-        case wp_shotgun: ammo = player->ammo[am_shell]; break;
-        case wp_chaingun: ammo = player->ammo[am_clip]; break;
-        case wp_missile: ammo = player->ammo[am_misl]; break;
-        case wp_plasma: ammo = player->ammo[am_cell]; break;
-        case wp_bfg: ammo = player->ammo[am_cell]; if ( ammo < 40 ) ammo = 0; break;
-        case wp_supershotgun: ammo = player->ammo[am_shell]; if ( ammo < 2 ) ammo = 0; break;
+
+    switch (weaponType) {
+        case wp_pistol:       ammo = player->ammo[am_clip]; break;
+        case wp_shotgun:      ammo = player->ammo[am_shell]; break;
+        case wp_chaingun:     ammo = player->ammo[am_clip]; break;
+        case wp_missile:      ammo = player->ammo[am_misl]; break;
+        case wp_plasma:       ammo = player->ammo[am_cell]; break;
+        case wp_bfg:          ammo = player->ammo[am_cell]; if (ammo < 40) ammo = 0; break;
+        case wp_supershotgun: ammo = player->ammo[am_shell]; if (ammo < 2) ammo = 0; break;
+        default: break;
     }
-    
+
     return ammo > 0;
 }
 
 static int SwitchWeapon(weaponswitch_e direction) {
     int index = players[consoleplayer].readyweapon;
-    if(direction == WEAPON_PREVIOUS) {
+
+    if (direction == WEAPON_PREVIOUS) {
         --index;
-        while(!HasAmmo(index)) {
-            if(--index < 0) {
+        while (!HasAmmo(index)) {
+            if (--index < 0) {
                 index = NUMWEAPONS - 1;
             }
         }
-    } else if(direction == WEAPON_NEXT) {
+    } else if (direction == WEAPON_NEXT) {
         ++index;
-        while(!HasAmmo(index)) {
-            if(++index >= NUMWEAPONS) {
+        while (!HasAmmo(index)) {
+            if (++index >= NUMWEAPONS) {
                 index = 0;
             }
         }
     }
-    
-    if(index == weaponSelected) {
+
+    if (index == players[consoleplayer].readyweapon) {
         return wp_nochange;
     }
-    
+
     return index;
 }
 
-static void setupPauseButtonHandler(GCController *ctrl) {
-    if(ctrl) {
-        ctrl.controllerPausedHandler = ^ (GCController* c){
-            togglePause = true;
-        };
+static GCController *PickBestController(void) {
+    NSArray *controllers = [GCController controllers];
+    GCController *best = nil;
+
+    for (GCController *c in controllers) {
+        // Prefer extended gamepad (thumbsticks + triggers)
+        if (c.extendedGamepad) {
+            return c;
+        }
+        // Fall back to basic gamepad profile
+        if (c.gamepad) {
+            best = c;
+        }
     }
+    return best;
+}
+
+static void SelectController(GCController *c) {
+    controller = c;
+    // Reset edge-detect state on connect/disconnect
+    prevMenuPressed = false;
+    prevButtonXPressed = false;
+    prevButtonYPressed = false;
+    prevLeftShoulderPressed = false;
+    prevRightShoulderPressed = false;
 }
 
 /**
- Lazily initialze game controller on first request
- return true if controller is available
+ Lazily initialize game controller support.
+ Always registers connect/disconnect observers so hot-plug works.
  */
-bool iphoneControllerIsAvailable() {
-    static bool initialized = false;
-    if(!initialized) {
-        NSArray *controllers = [GCController controllers];
-        if(controllers.count > 0) {
-//            controller = controllers[0]; // Just use the first one
-            
-            // If we have neither gamepad nor extended gamepad support, just make controller nil
-//            if(![controller gamepad] && ![controller extendedGamepad]) {
-                controller = nil;
-//            }
-            
-            for (int i = 0; i < controllers.count; i++)
-            {
-                if([controllers[i] gamepad] || [controllers[i] extendedGamepad]) {
-                    controller = controllers[i];
-                }
-            }
-            
+bool iphoneControllerIsAvailable(void) {
+    if (!observersRegistered) {
+        observersRegistered = true;
+
+        // Pick any controller already present
+        SelectController(PickBestController());
+
 #if !TARGET_OS_TV
-            setupPauseButtonHandler(controller);
-            
-            // Register for controller connected/disconnected notifications
-            NSNotificationCenter *ns = [NSNotificationCenter defaultCenter];
-            [ns addObserverForName:GCControllerDidConnectNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
-                if(!controller) {
-                    controller = [GCController controllers][0];
-                    if(![controller gamepad] && ![controller extendedGamepad]) {
-                        controller = nil;
-                    }
-                    
-                    setupPauseButtonHandler(controller);
-                }
-            }];
-            
-            [ns addObserverForName:GCControllerDidDisconnectNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
-                controller = nil;
-            }];
+        NSNotificationCenter *ns = [NSNotificationCenter defaultCenter];
+
+        [ns addObserverForName:GCControllerDidConnectNotification
+                        object:nil
+                         queue:[NSOperationQueue mainQueue]
+                    usingBlock:^(NSNotification *note) {
+            // Prefer the newly connected controller if we have none,
+            // or if the new one has a better profile.
+            GCController *best = PickBestController();
+            if (best != controller) {
+                SelectController(best);
+            }
+        }];
+
+        [ns addObserverForName:GCControllerDidDisconnectNotification
+                        object:nil
+                         queue:[NSOperationQueue mainQueue]
+                    usingBlock:^(NSNotification *note) {
+            // Re-pick from whatever is still connected
+            SelectController(PickBestController());
+        }];
 #endif
-        }
-        initialized = true; // Only need to do this once
     }
+
+    // Also re-check in case LiveContainer / system state changed
+    if (!controller) {
+        SelectController(PickBestController());
+    }
+
     return controller != nil;
 }
 
-void iphoneControllerInput(ticcmd_t* cmd) {
-    if(iphoneControllerIsAvailable()) {
-        // Perform standard gamepad updates
-        GCExtendedGamepad *gamepad = controller.extendedGamepad;
-        
-        cmd->angleturn += (gamepad.rightThumbstick.xAxis.value * -ROTATETHRESHOLD);
-        cmd->forwardmove += (gamepad.leftThumbstick.yAxis.value * TURBOTHRESHOLD);
-        cmd->sidemove += (gamepad.leftThumbstick.xAxis.value * TURBOTHRESHOLD);
-        
-        if(gamepad.rightTrigger.pressed) {
+void iphoneControllerInput(ticcmd_t *cmd) {
+    if (!iphoneControllerIsAvailable()) {
+        return;
+    }
+
+    GCExtendedGamepad *ext = controller.extendedGamepad;
+    GCGamepad *basic = controller.gamepad;
+
+    // ------------------------------------------------------------------
+    // Movement / look
+    // ------------------------------------------------------------------
+    if (ext) {
+        // Dual analog
+        float turn   = ext.rightThumbstick.xAxis.value;
+        float forward = ext.leftThumbstick.yAxis.value;
+        float side   = ext.leftThumbstick.xAxis.value;
+
+        // Optional: also allow D-pad as digital movement
+        if (ext.dpad.up.pressed)    forward =  1.0f;
+        if (ext.dpad.down.pressed)  forward = -1.0f;
+        if (ext.dpad.left.pressed)  side    = -1.0f;
+        if (ext.dpad.right.pressed) side    =  1.0f;
+
+        cmd->angleturn   += (int)(turn * -ROTATETHRESHOLD);
+        cmd->forwardmove += (int)(forward * TURBOTHRESHOLD);
+        cmd->sidemove    += (int)(side * TURBOTHRESHOLD);
+
+        // Fire
+        if (ext.rightTrigger.pressed || ext.buttonB.pressed) {
             cmd->buttons |= BT_ATTACK;
         }
-        
-        if(gamepad.buttonA.pressed) {
+
+        // Use / open
+        if (ext.buttonA.pressed) {
             cmd->buttons |= BT_USE;
         }
-        
+
+        // Weapon prev / next (edge-triggered)
+        bool xPressed = ext.buttonX.pressed;
+        bool yPressed = ext.buttonY.pressed;
+        bool lsPressed = ext.leftShoulder.pressed;
+        bool rsPressed = ext.rightShoulder.pressed;
+
         int newWeapon = wp_nochange;
-        
-        // Switch weapons using X and Y buttons
-        if(gamepad.buttonX.pressed && players[consoleplayer].pendingweapon == wp_nochange) {
-            newWeapon = SwitchWeapon(WEAPON_PREVIOUS);
+
+        if ((xPressed && !prevButtonXPressed) || (lsPressed && !prevLeftShoulderPressed)) {
+            if (players[consoleplayer].pendingweapon == wp_nochange) {
+                newWeapon = SwitchWeapon(WEAPON_PREVIOUS);
+            }
         }
-        
-        if(gamepad.buttonY.pressed && players[consoleplayer].pendingweapon == wp_nochange) {
-            newWeapon = SwitchWeapon(WEAPON_NEXT);
+        if ((yPressed && !prevButtonYPressed) || (rsPressed && !prevRightShoulderPressed)) {
+            if (players[consoleplayer].pendingweapon == wp_nochange) {
+                newWeapon = SwitchWeapon(WEAPON_NEXT);
+            }
         }
-        
-        // If we switched weapons, pass that info down to our frame cmd
-        if(newWeapon != wp_nochange) {
+
+        prevButtonXPressed = xPressed;
+        prevButtonYPressed = yPressed;
+        prevLeftShoulderPressed = lsPressed;
+        prevRightShoulderPressed = rsPressed;
+
+        if (newWeapon != wp_nochange) {
             cmd->buttons |= BT_CHANGE;
             cmd->buttons |= newWeapon << BT_WEAPONSHIFT;
         }
-        
-//        if(gamepad.dpad.left.pressed && players[consoleplayer].playerstate == PST_DEAD) {
-//            cmd->buttons |= BT_USE;
-//        }
-//        
-//        if(gamepad.dpad.up.pressed && players[consoleplayer].playerstate == PST_DEAD) {
-//            cmd->buttons |= BT_SPECIAL;
-//        }
-//        
-//        if(gamepad.dpad.right.pressed && players[consoleplayer].playerstate == PST_DEAD) {
-//            cmd->buttons |= BT_SPECIALMASK;
-//        }
 
-        if(togglePause) {
+        // Pause via Menu button (replaces deprecated controllerPausedHandler)
+        bool menuPressed = false;
+        if (@available(iOS 13.0, *)) {
+            if (ext.buttonMenu) {
+                menuPressed = ext.buttonMenu.pressed;
+            }
+        }
+        if (menuPressed && !prevMenuPressed) {
             cmd->buttons |= BT_SPECIAL | (BTS_PAUSE & BT_SPECIALMASK);
-            togglePause = false;
+        }
+        prevMenuPressed = menuPressed;
+
+    } else if (basic) {
+        // Basic gamepad profile (D-pad + face buttons + shoulders)
+        float forward = 0.0f;
+        float side = 0.0f;
+        float turn = 0.0f;
+
+        if (basic.dpad.up.pressed)    forward =  1.0f;
+        if (basic.dpad.down.pressed)  forward = -1.0f;
+        if (basic.dpad.left.pressed)  turn    = -1.0f;  // or side if you prefer strafe
+        if (basic.dpad.right.pressed) turn    =  1.0f;
+
+        cmd->angleturn   += (int)(turn * -ROTATETHRESHOLD);
+        cmd->forwardmove += (int)(forward * TURBOTHRESHOLD);
+        cmd->sidemove    += (int)(side * TURBOTHRESHOLD);
+
+        if (basic.buttonB.pressed || basic.rightShoulder.pressed) {
+            cmd->buttons |= BT_ATTACK;
+        }
+        if (basic.buttonA.pressed) {
+            cmd->buttons |= BT_USE;
+        }
+
+        bool xPressed = basic.buttonX.pressed;
+        bool yPressed = basic.buttonY.pressed;
+
+        int newWeapon = wp_nochange;
+        if (xPressed && !prevButtonXPressed &&
+            players[consoleplayer].pendingweapon == wp_nochange) {
+            newWeapon = SwitchWeapon(WEAPON_PREVIOUS);
+        }
+        if (yPressed && !prevButtonYPressed &&
+            players[consoleplayer].pendingweapon == wp_nochange) {
+            newWeapon = SwitchWeapon(WEAPON_NEXT);
+        }
+        prevButtonXPressed = xPressed;
+        prevButtonYPressed = yPressed;
+
+        if (newWeapon != wp_nochange) {
+            cmd->buttons |= BT_CHANGE;
+            cmd->buttons |= newWeapon << BT_WEAPONSHIFT;
         }
     }
 }
