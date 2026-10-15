@@ -21,6 +21,7 @@
 #include "doomiphone.h"
 #include "TargetConditionals.h"
 #include <math.h>
+#include "GameController.h"
 
 hud_t	huds;
 
@@ -42,29 +43,30 @@ void SetHudPic( ibutton_t *hp, const char *image ) {
 }
 
 void SetHudSpot( ibutton_t *hp, int x, int y, int dw, int dh ) {
-	hp->touch = NULL;	// in case one was down when it was saved	
-    
-    // JDS Debug
-    printf("Registering button at Doom coordinates: %d %d %d %d\n",x,y,dw,dh);
-    
-    float xRatio = ((float)displaywidth) / 480.0f;
-    float yRatio = ((float)displayheight) / 320.0f;
-    
-    x *= xRatio;
-    y *= yRatio;
-    
-    float themin = MIN( xRatio, yRatio );
-    
-    dw *= themin;
-    dh *= themin;
-    
-	hp->x = x - dw/2;
-	hp->y = y - dh/2;
-	hp->drawWidth = dw;
-	hp->drawHeight = dh;
+	hp->touch = NULL;	// in case one was down when it was saved
+
+	// Design layout is 480x320 landscape
+	float scaleX = (float)displaywidth  / 480.0f;
+	float scaleY = (float)displayheight / 320.0f;
+
+	// Uniform scale preserves aspect ratio (fixes oval/stretched sticks)
+	float scale = (scaleX < scaleY) ? scaleX : scaleY;
+
+	// Center the logical 480x320 area in the real framebuffer
+	float offsetX = (displaywidth  - 480.0f * scale) * 0.5f;
+	float offsetY = (displayheight - 320.0f * scale) * 0.5f;
+
+	float sx  = x  * scale + offsetX;
+	float sy  = y  * scale + offsetY;
+	float sdw = dw * scale;
+	float sdh = dh * scale;
+
+	hp->x = (int)(sx - sdw * 0.5f);
+	hp->y = (int)(sy - sdh * 0.5f);
+	hp->drawWidth  = (int)sdw;
+	hp->drawHeight = (int)sdh;
 	hp->buttonFlags = 0;
 	hp->scale = 1.0f;
-    
 }
 
 void HudSetTexnums() {
@@ -133,6 +135,29 @@ void SnapSticks( ibutton_t *test, const ibutton_t *to ) {
 	if ( abs( test->x - to->x ) < test->drawWidth && abs( test->y - to->y ) < test->drawHeight ) {
 		test->x = to->x;
 		test->y = to->y;
+	}
+}
+
+// Call every frame (or when controller connect state changes)
+void HudUpdateControllerVisibility(void) {
+	const bool hideTouch = iphoneControllerIsAvailable();
+
+	// Virtual sticks / fire / weapon wheel
+	if (hideTouch) {
+		huds.forwardStick.buttonFlags |= BF_IGNORE;
+		huds.sideStick.buttonFlags    |= BF_IGNORE;
+		huds.turnStick.buttonFlags    |= BF_IGNORE;
+		huds.turnRotor.buttonFlags    |= BF_IGNORE;
+		huds.fire.buttonFlags         |= BF_IGNORE;
+		huds.weaponSelect.buttonFlags |= BF_IGNORE;
+		// Optional: also hide menu/map touch buttons when using controller
+		// huds.menu.buttonFlags |= BF_IGNORE;
+		// huds.map.buttonFlags  |= BF_IGNORE;
+	} else {
+		// Re-apply the current scheme so flags are correct again
+		extern cvar_t *controlScheme;
+		int scheme = controlScheme ? (int)controlScheme->value : 0;
+		HudSetForScheme(scheme);
 	}
 }
 
