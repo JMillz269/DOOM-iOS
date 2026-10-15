@@ -18,7 +18,7 @@ jobs:
 
       - name: List project
         run: |
-          xcodebuild -project Doom.xcodeproj -list
+          xcodebuild -project __MACOSX/code/iphone/Doom.xcodeproj -list
 
       - name: Build
         run: |
