@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - main          # or master – match whatever your default branch is
 
 jobs:
   build:
@@ -18,12 +18,12 @@ jobs:
 
       - name: List project
         run: |
-          xcodebuild -project __MACOSX/code/iphone/Doom.xcodeproj -list
+          xcodebuild -project code/iphone/DOOM.xcodeproj -list
 
       - name: Build
         run: |
           xcodebuild \
-            -project Doom.xcodeproj \
+            -project code/iphone/DOOM.xcodeproj \
             -scheme Doom \
             -configuration Release \
             -sdk iphoneos \
@@ -38,7 +38,7 @@ jobs:
           mkdir Payload
           cp -R build/Build/Products/Release-iphoneos/*.app Payload/
           /usr/bin/zip -r Doom.ipa Payload
-      
+
       - name: Upload ipa
         uses: actions/upload-artifact@v4
         with:
