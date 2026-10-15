@@ -35,7 +35,8 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+            CODE_SIGN_IDENTITY="" \
+            GCC_PREPROCESSOR_DEFINITIONS="HAVE_CONFIG_H IPHONE _SAMPLE_RATE_22050 EAS_WT_SYNTH GAME_DOOM"
 
       - name: Create unsigned ipa
         run: |
