@@ -20,6 +20,11 @@ jobs:
         run: |
           xcodebuild -project code/iphone/DOOM.xcodeproj -list
 
+      - name: Create dummy WAD
+        run: |
+          mkdir -p base
+          touch base/doom.wad
+
       - name: Build
         run: |
           xcodebuild \
