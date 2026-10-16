@@ -1696,58 +1696,51 @@ void iphoneDrawScreen() {
                 iphoneMainMenu();
 			}
 		} else if ( !menuactive && !demoplayback && usergame && gamestate == GS_LEVEL ) {
+					} else if ( !menuactive && !demoplayback && usergame && gamestate == GS_LEVEL ) {
 			if ( players[consoleplayer].playerstate == PST_DEAD ) {
-				// when dead, only show the main menu con and the
+				// when dead, only show the main menu and the
 				// respawn / load game icons
-if (!TARGET_OS_TV) {
-    if ( HandleButton( &huds.menu ) ) {
-        iphonePauseMusic();
-        menuState = IPM_MAIN;
-        iphoneMainMenu();
-    }
-    if ( HandleButton( &huds.map ) ) {
-        AM_Start();
-    }
-    // Fire touch only when no external controller
-    if ( !iphoneControllerIsAvailable() ) {
-        if ( HandleButton( &huds.fire ) ) {
-        }
-    }
-}
+#if !TARGET_OS_TV
+				if ( HandleButton( &huds.menu ) ) {
+					iphonePauseMusic();
+					menuState = IPM_MAIN;
+					iphoneMainMenu();
+				}
 #endif
 				if ( !deathmatch && !netgame ) {
-                    
-                    // for now we're going to not draw these on the screen for the TV version
-                    // all you can do is respawn with the USE button (A)
-                    
+
+					// for now we're going to not draw these on the screen for the TV version
+					// all you can do is respawn with the USE button (A)
+
 #if TARGET_OS_TV
-                    static ibutton_t btnRespawn;
-                    SetButtonPicsAndSizes( &btnRespawn, "iphone/respawn.tga", "Press A to restart", 240 - 48, 80, 96, 96 );
-                    if ( HandleButton( &btnRespawn ) ) {
-//                        players[consoleplayer].playerstate = PST_REBORN;
-                    }
+					static ibutton_t btnRespawn;
+					SetButtonPicsAndSizes( &btnRespawn, "iphone/respawn.tga", "Press A to restart", 240 - 48, 80, 96, 96 );
+					if ( HandleButton( &btnRespawn ) ) {
+//						players[consoleplayer].playerstate = PST_REBORN;
+					}
 #else
 					static ibutton_t btnSaved;
 					static ibutton_t btnRespawn;
 					static ibutton_t btnGear;
-					
+
 					if ( !btnSaved.texture ) {
 						// initial setup
 						SetButtonPicsAndSizes( &btnSaved, "iphone/load_saved.tga", "Saved game", 240 - 48 - 96 - 48, 80, 96, 96 );
 						SetButtonPicsAndSizes( &btnRespawn, "iphone/respawn.tga", "Restart", 240 - 48, 80, 96, 96 );
 						SetButtonPicsAndSizes( &btnGear, "iphone/respawn_gear.tga", "Add gear", 240 + 48 + 48, 80, 96, 96 );
 					}
-					
+
 					if ( HandleButton( &btnSaved ) ) {
 						StartSaveGame();
 					}
 					if ( HandleButton( &btnRespawn ) ) {
-					    players[consoleplayer].playerstate = PST_REBORN;	
+						players[consoleplayer].playerstate = PST_REBORN;
 					}
 					if ( HandleButton( &btnGear ) ) {
-					    players[consoleplayer].playerstate = PST_REBORN;
+						players[consoleplayer].playerstate = PST_REBORN;
 						addGear = true;
 					}
+#endif
 				} else {
 					static ibutton_t btnNetRespawn;
 					if ( !btnNetRespawn.texture ) {
@@ -1757,43 +1750,46 @@ if (!TARGET_OS_TV) {
 					if ( HandleButton( &btnNetRespawn ) ) {
 						// this will cause the next command sent to include a use action,
 						// then clear this flag
-					    respawnActive = true;	
+						respawnActive = true;
 					}
 				}
 			} else if ( drawWeaponSelect ) {
 				DrawWeaponSelect();
 			} else {
-				// Keep touch HUD in sync with controller presence
-					HudUpdateControllerVisibility();
+				// Hide on-screen sticks when an MFi controller is connected
+				HudUpdateControllerVisibility();
 
-		if ( drawControls->value && !iphoneControllerIsAvailable() ) {
-    iphoneDrawHudControl( &huds.forwardStick );
-    iphoneDrawHudControl( &huds.sideStick );
-    iphoneDrawHudControl( &huds.turnStick );
-    iphoneDrawRotorControl( &huds.turnRotor );
-}
-                
-                if (!TARGET_OS_TV) {
-                    
-                    if ( HandleButton( &huds.menu ) ) {
-                        iphonePauseMusic();
-                        menuState = IPM_MAIN;
-                        iphoneMainMenu();
-                    }
-                    if ( HandleButton( &huds.map ) ) {
-                        AM_Start();
-                    }
-                    if ( HandleButton( &huds.fire ) ) {
-                    }
-                }
-				
+				if ( drawControls->value && !iphoneControllerIsAvailable() ) {
+					iphoneDrawHudControl( &huds.forwardStick );
+					iphoneDrawHudControl( &huds.sideStick );
+					iphoneDrawHudControl( &huds.turnStick );
+					iphoneDrawRotorControl( &huds.turnRotor );
+//					iphoneDrawHudControl( &huds.fire );
+				}
+
+#if !TARGET_OS_TV
+				if ( HandleButton( &huds.menu ) ) {
+					iphonePauseMusic();
+					menuState = IPM_MAIN;
+					iphoneMainMenu();
+				}
+				if ( HandleButton( &huds.map ) ) {
+					AM_Start();
+				}
+				// Fire touch only when no external controller
+				if ( !iphoneControllerIsAvailable() ) {
+					if ( HandleButton( &huds.fire ) ) {
+					}
+				}
+#endif
+
 				if ( netgame ) {
-#if 0				
+#if 0
 					static ibutton_t btnPlayer;
 					if ( NewTextButton( &btnPlayer, "PLAYER", 0, 48, 100, 32 ) ) {
 						displayplayer ^= 1;
 					}
-					
+
 					static ibutton_t btnNet;
 					if ( NewTextButton( &btnNet, "NET", 240-32, 0, 80, 32 ) ) {
 						showNet->value = !showNet->value;
@@ -1806,7 +1802,7 @@ if (!TARGET_OS_TV) {
 #endif
 				}
 
-#if 0				
+#if 0
 				static ibutton_t btnSpeeds;
 				if ( NewTextButton( &btnSpeeds, "SPEEDS", 240-32, 0, 80, 32 ) ) {
 					showTime->value = !showTime->value;
@@ -1815,18 +1811,18 @@ if (!TARGET_OS_TV) {
 				if ( NewTextButton( &btnTest, "TEST", 0, 48, 70, 32 ) ) {
 					testNewRenderer = !testNewRenderer;
 				}
-#endif				
+#endif
 			}
 
 			// notify text last, so it is always on top and legible
 			iphoneDrawNotifyText();
-			
+
 			// not getting network tics
 			const int timeSinceLastProcessed = SysIphoneMilliseconds() - lastGameProcessedTime;
-			if ( timeSinceLastProcessed > 800 ) { // Origianlly was 500, let's be a little more lenient for internet play.
+			if ( timeSinceLastProcessed > 800 ) {
 				PK_StretchTexture( PK_FindTexture("iphone/multiplay.tga"), 240 - 96/2, 90, 96, 96 );
 			}
-			
+
 			// draw the little graph in the upper right corner
 #ifndef NDEBUG
 			if ( netgame ) {
