@@ -1755,7 +1755,9 @@ void iphoneDrawScreen() {
 				}
 			} else if ( drawWeaponSelect ) {
 				DrawWeaponSelect();
-						} else {
+							} else {
+				HudUpdateControllerVisibility();
+
 				if ( drawControls->value ) {
 					iphoneDrawHudControl( &huds.forwardStick );
 					iphoneDrawHudControl( &huds.sideStick );
@@ -1763,20 +1765,19 @@ void iphoneDrawScreen() {
 					iphoneDrawRotorControl( &huds.turnRotor );
 //					iphoneDrawHudControl( &huds.fire );
 				}
-                
-                if (!TARGET_OS_TV) {
-                    
-                    if ( HandleButton( &huds.menu ) ) {
-                        iphonePauseMusic();
-                        menuState = IPM_MAIN;
-                        iphoneMainMenu();
-                    }
-                    if ( HandleButton( &huds.map ) ) {
-                        AM_Start();
-                    }
-                    if ( HandleButton( &huds.fire ) ) {
-                    }
-                }
+
+#if !TARGET_OS_TV
+				if ( HandleButton( &huds.menu ) ) {
+					iphonePauseMusic();
+					menuState = IPM_MAIN;
+					iphoneMainMenu();
+				}
+				if ( HandleButton( &huds.map ) ) {
+					AM_Start();
+				}
+				if ( HandleButton( &huds.fire ) ) {
+				}
+#endif
 
 #if !TARGET_OS_TV
 				if ( HandleButton( &huds.menu ) ) {
