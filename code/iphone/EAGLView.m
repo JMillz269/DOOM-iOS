@@ -37,10 +37,6 @@
 EAGLView *eaglview;
 EAGLContext *context;
 
-// Used by hud.c to correct LiveContainer non-uniform scaling
-float g_viewBoundsWidth = 0.0f;
-float g_viewBoundsHeight = 0.0f;
-
 @implementation EAGLView
 
 + (Class)layerClass {
@@ -122,8 +118,75 @@ CAEAGLLayer *eaglLayer;
 
 - (void)layoutSubviews {
     [super layoutSubviews];
-    g_viewBoundsWidth  = self.bounds.size.width;
-    g_viewBoundsHeight = self.bounds.size.height;
+    [self resizeFramebufferToView];
+}
+
+// LiveContainer changes the view's aspect after the renderbuffer was
+// created from UIScreen bounds. CAEAGLLayer then stretches the old
+// buffer non-uniformly, which turns the stick quads into ovals.
+// Rebuild the drawable so its aspect matches the view.
+- (void)resizeFramebufferToView {
+    if ( !context || !mViewFramebuffer ) {
+        return;
+    }
+
+    CGFloat scale = 0.0f;
+    if ( self.window.screen ) {
+        scale = self.window.screen.scale;
+    }
+    if ( scale < 1.0f ) {
+        scale = self.traitCollection.displayScale;
+    }
+    if ( scale < 1.0f ) {
+        scale = [UIScreen mainScreen].scale;
+    }
+    if ( scale < 1.0f ) {
+        scale = 1.0f;
+    }
+    if ( fabs( self.contentScaleFactor - scale ) > 0.01f ) {
+        self.contentScaleFactor = scale;
+    }
+
+    CGSize pt = self.bounds.size;
+    if ( pt.width < 1.0f || pt.height < 1.0f ) {
+        return;
+    }
+
+    GLint wantW = (GLint)lround( pt.width  * self.contentScaleFactor );
+    GLint wantH = (GLint)lround( pt.height * self.contentScaleFactor );
+    if ( wantW == backingWidth && wantH == backingHeight && backingWidth > 0 ) {
+        return;
+    }
+
+    [EAGLContext setCurrentContext:context];
+    glBindFramebufferOES( GL_FRAMEBUFFER_OES, mViewFramebuffer );
+    glBindRenderbufferOES( GL_RENDERBUFFER_OES, mViewRenderbuffer );
+    [context renderbufferStorage:GL_RENDERBUFFER_OES fromDrawable:(CAEAGLLayer *)self.layer];
+
+    GLint w = 0;
+    GLint h = 0;
+    glGetRenderbufferParameterivOES( GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &w );
+    glGetRenderbufferParameterivOES( GL_RENDERBUFFER_OES, GL_RENDERBUFFER_HEIGHT_OES, &h );
+    if ( w < 1 || h < 1 ) {
+        return;
+    }
+    if ( w == backingWidth && h == backingHeight ) {
+        return;
+    }
+
+    backingWidth = w;
+    backingHeight = h;
+    displaywidth = w;
+    displayheight = h;
+
+    glBindRenderbufferOES( GL_RENDERBUFFER_OES, mDepthRenderbuffer );
+    glRenderbufferStorageOES( GL_RENDERBUFFER_OES, GL_DEPTH_COMPONENT16_OES, w, h );
+    glFramebufferRenderbufferOES( GL_FRAMEBUFFER_OES, GL_DEPTH_ATTACHMENT_OES, GL_RENDERBUFFER_OES, mDepthRenderbuffer );
+    glBindRenderbufferOES( GL_RENDERBUFFER_OES, mViewRenderbuffer );
+
+    if ( controlScheme ) {
+        HudSetForScheme( (int)controlScheme->value );
+    }
 }
 
 - (id) initWithCoder:(NSCoder *)aCoder{
