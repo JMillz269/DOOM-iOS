@@ -20,6 +20,7 @@
 
 #include "doomiphone.h"
 #include "TargetConditionals.h"
+#include "GameController.h"
 
 playState_t playState;
 
@@ -1698,12 +1699,21 @@ void iphoneDrawScreen() {
 			if ( players[consoleplayer].playerstate == PST_DEAD ) {
 				// when dead, only show the main menu con and the
 				// respawn / load game icons
-#if !TARGET_OS_TV
-				if ( HandleButton( &huds.menu ) ) {
-					iphonePauseMusic();
-					menuState = IPM_MAIN;
-                    iphoneMainMenu();
-				}
+if (!TARGET_OS_TV) {
+    if ( HandleButton( &huds.menu ) ) {
+        iphonePauseMusic();
+        menuState = IPM_MAIN;
+        iphoneMainMenu();
+    }
+    if ( HandleButton( &huds.map ) ) {
+        AM_Start();
+    }
+    // Fire touch only when no external controller
+    if ( !iphoneControllerIsAvailable() ) {
+        if ( HandleButton( &huds.fire ) ) {
+        }
+    }
+}
 #endif
 				if ( !deathmatch && !netgame ) {
                     
