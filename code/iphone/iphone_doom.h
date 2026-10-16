@@ -118,6 +118,13 @@ extern boolean	iphoneTimeDemo;
 extern int		timeDemoStart;
 extern char		timeDemoResultString[80];
 extern float    screenResolutionScale;
+extern float    g_viewBoundsWidth;
+extern float    g_viewBoundsHeight;
+extern float    g_presentScaleX;
+extern float    g_presentScaleY;
+
+float HudPresentXScale( void );
+void EAGLView_UpdatePresentScale( void );
 
 extern cvar_t	*skill;
 extern cvar_t	*episode;
