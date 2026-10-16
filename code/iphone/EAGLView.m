@@ -96,10 +96,6 @@ CAEAGLLayer *eaglLayer;
     displaywidth = backingWidth;
     displayheight = backingHeight;
 
-    // Track UIView size for LiveContainer aspect correction
-    g_viewBoundsWidth  = self.bounds.size.width;
-    g_viewBoundsHeight = self.bounds.size.height;
-
     glGenRenderbuffersOES(1, &mDepthRenderbuffer);
     glBindRenderbufferOES(GL_RENDERBUFFER_OES, mDepthRenderbuffer);
     glRenderbufferStorageOES(GL_RENDERBUFFER_OES, GL_DEPTH_COMPONENT16_OES, backingWidth, backingHeight);
