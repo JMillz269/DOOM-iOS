@@ -43,23 +43,17 @@ void SetHudPic( ibutton_t *hp, const char *image ) {
 }
 
 void SetHudSpot( ibutton_t *hp, int x, int y, int dw, int dh ) {
-	hp->touch = NULL;	// in case one was down when it was saved
+	hp->touch = NULL;
 
-	// Design layout is 480x320 landscape
-	float scaleX = (float)displaywidth  / 480.0f;
-	float scaleY = (float)displayheight / 320.0f;
-
-	// Uniform scale preserves aspect ratio (fixes oval/stretched sticks)
-	float scale = (scaleX < scaleY) ? scaleX : scaleY;
-
-	// Center the logical 480x320 area in the real framebuffer
-	float offsetX = (displaywidth  - 480.0f * scale) * 0.5f;
-	float offsetY = (displayheight - 320.0f * scale) * 0.5f;
-
-	float sx  = x  * scale + offsetX;
-	float sy  = y  * scale + offsetY;
+	// Size from height so sticks stay circular on any aspect ratio
+	float scale = (float)displayheight / 320.0f;
 	float sdw = dw * scale;
 	float sdh = dh * scale;
+
+	// Map design coords (480x320) across the real framebuffer
+	// so left controls stay left and right stay right
+	float sx = ((float)x / 480.0f) * (float)displaywidth;
+	float sy = ((float)y / 320.0f) * (float)displayheight;
 
 	hp->x = (int)(sx - sdw * 0.5f);
 	hp->y = (int)(sy - sdh * 0.5f);
