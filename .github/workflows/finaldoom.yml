@@ -23,7 +23,7 @@ jobs:
         run: |
           xcodebuild \
             -project code/iphone/DOOM.xcodeproj \
-            -scheme FinalDOOM-iOS \
+            -scheme FInalDOOM-iOS \
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath build \
