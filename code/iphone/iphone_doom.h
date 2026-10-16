@@ -425,8 +425,8 @@ typedef struct {
 extern hud_t	huds;
 
 void HudSetForScheme( int schemeNum );
-void HudUpdateControllerVisibility(void);
 void HudSetTexnums(void);
+void HudUpdateControllerVisibility(void);
 void HudEditFrame(void);
 
 boolean StartNetGame(void);
