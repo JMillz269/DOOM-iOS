@@ -260,4 +260,32 @@ void HudEditFrame() {
 	}
 	
 }
+void HudUpdateControllerVisibility(void) {
+	static int lastState = -1;
+	int now = iphoneControllerIsAvailable() ? 1 : 0;
 
+	if (now == lastState) {
+		return;
+	}
+	lastState = now;
+
+	if (now) {
+		huds.forwardStick.buttonFlags |= BF_IGNORE;
+		huds.sideStick.buttonFlags    |= BF_IGNORE;
+		huds.turnStick.buttonFlags    |= BF_IGNORE;
+		huds.turnRotor.buttonFlags    |= BF_IGNORE;
+		huds.fire.buttonFlags         |= BF_IGNORE;
+		huds.weaponSelect.buttonFlags |= BF_IGNORE;
+	} else {
+		huds.forwardStick.buttonFlags &= ~BF_IGNORE;
+		huds.sideStick.buttonFlags    &= ~BF_IGNORE;
+		huds.turnStick.buttonFlags    &= ~BF_IGNORE;
+		huds.turnRotor.buttonFlags    &= ~BF_IGNORE;
+		huds.fire.buttonFlags         &= ~BF_IGNORE;
+		huds.weaponSelect.buttonFlags &= ~BF_IGNORE;
+
+		extern cvar_t *controlScheme;
+		int scheme = controlScheme ? (int)controlScheme->value : 0;
+		HudSetForScheme(scheme);
+	}
+}
