@@ -1696,7 +1696,6 @@ void iphoneDrawScreen() {
                 iphoneMainMenu();
 			}
 		} else if ( !menuactive && !demoplayback && usergame && gamestate == GS_LEVEL ) {
-					} else if ( !menuactive && !demoplayback && usergame && gamestate == GS_LEVEL ) {
 			if ( players[consoleplayer].playerstate == PST_DEAD ) {
 				// when dead, only show the main menu and the
 				// respawn / load game icons
@@ -1789,9 +1788,7 @@ void iphoneDrawScreen() {
 					AM_Start();
 				}
 				// Fire touch only when no external controller
-				if ( !iphoneControllerIsAvailable() ) {
-					if ( HandleButton( &huds.fire ) ) {
-					}
+								if ( HandleButton( &huds.fire ) ) {
 				}
 #endif
 
