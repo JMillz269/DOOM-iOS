@@ -119,6 +119,33 @@ CAEAGLLayer *eaglLayer;
 
 - (void)layoutSubviews {
     [super layoutSubviews];
+    [self updatePresentScale];
+}
+
+- (void)updatePresentScale {
+    g_viewBoundsWidth = self.bounds.size.width;
+    g_viewBoundsHeight = self.bounds.size.height;
+    g_presentScaleX = 100.0f;
+    g_presentScaleY = 100.0f;
+
+    UIScreen *screen = self.window.screen;
+    if ( !screen ) {
+        return;
+    }
+
+    CGPoint o  = [self convertPoint:CGPointZero toCoordinateSpace:screen.coordinateSpace];
+    CGPoint ax = [self convertPoint:CGPointMake( 100.0, 0.0 ) toCoordinateSpace:screen.coordinateSpace];
+    CGPoint ay = [self convertPoint:CGPointMake( 0.0, 100.0 ) toCoordinateSpace:screen.coordinateSpace];
+    g_presentScaleX = hypot( ax.x - o.x, ax.y - o.y );
+    g_presentScaleY = hypot( ay.x - o.x, ay.y - o.y );
+    if ( g_presentScaleX < 0.01f ) g_presentScaleX = 100.0f;
+    if ( g_presentScaleY < 0.01f ) g_presentScaleY = 100.0f;
+}
+
+void EAGLView_UpdatePresentScale( void ) {
+    if ( eaglview ) {
+        [eaglview updatePresentScale];
+    }
 }
 
 - (id) initWithCoder:(NSCoder *)aCoder{
