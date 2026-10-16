@@ -82,53 +82,34 @@ void HudSetTexnums() {
 	SetHudSpot( &huds.weaponSelect, 240, 280, 40, 40 );	
 }
 
-void HudSetForScheme( int schemeNum ) {
-    
-	for ( ibutton_t *hud = (ibutton_t *)&huds ; hud != (ibutton_t *)(&huds+1) ; hud++ ) {
-		hud->buttonFlags = BF_IGNORE;
+void HudUpdateControllerVisibility(void) {
+	static int lastState = -1;
+	int now = iphoneControllerIsAvailable() ? 1 : 0;
+
+	if (now == lastState) {
+		return;
 	}
-	int STICK_SIZE = 128;
-	int HALF_STICK = 128/2;
-    
-	static const int BOTTOM = 320 - 44;	// above the status bar
-	SetHudSpot( &huds.weaponSelect, 240, 280, 40, 40 );	// the touch area is doubled
-	
-	// make the forward / back sticks touch taller than they draw
-	switch ( schemeNum ) {
-		default:
-		case 0:		// turn stick
-			SetHudSpot( &huds.forwardStick, HALF_STICK, BOTTOM-HALF_STICK, STICK_SIZE, STICK_SIZE );
-			SetHudSpot( &huds.turnStick, HALF_STICK, BOTTOM-HALF_STICK, STICK_SIZE, STICK_SIZE );
-			SetHudSpot( &huds.fire, 480-40, BOTTOM-HALF_STICK, 80, 80 );
-			SetHudSpot( &huds.menu, 480-24, 24, 48, 48 );
-			SetHudSpot( &huds.map, 24, 24, 48, 48 );
-			break;
-		case 1:		// dual stick
-			SetHudSpot( &huds.forwardStick, HALF_STICK, BOTTOM-HALF_STICK, STICK_SIZE, STICK_SIZE );
-			SetHudSpot( &huds.sideStick, HALF_STICK, BOTTOM-HALF_STICK, STICK_SIZE, STICK_SIZE );
-			SetHudSpot( &huds.turnStick, 480-HALF_STICK, BOTTOM-HALF_STICK, STICK_SIZE, STICK_SIZE );
-			SetHudSpot( &huds.fire, 480-40, 40, 80, 80 );	
-			SetHudSpot( &huds.menu, 48+24, 24, 48, 48 );
-			SetHudSpot( &huds.map, 24, 24, 48, 48 );
-			break;
-		case 2:		// rotor
-			SetHudSpot( &huds.forwardStick, HALF_STICK, BOTTOM-HALF_STICK, STICK_SIZE, STICK_SIZE );
-			SetHudSpot( &huds.sideStick, HALF_STICK, BOTTOM-HALF_STICK, STICK_SIZE, STICK_SIZE );
-			SetHudSpot( &huds.turnRotor, 480-HALF_STICK, BOTTOM-HALF_STICK, STICK_SIZE, STICK_SIZE );
-			SetHudSpot( &huds.fire, 480-40, 40, 80, 80 );	
-			SetHudSpot( &huds.menu, 48+24, 24, 48, 48 );
-			SetHudSpot( &huds.map, 24, 24, 48, 48 );
-			break;
+	lastState = now;
+
+	if (now) {
+		huds.forwardStick.buttonFlags |= BF_IGNORE;
+		huds.sideStick.buttonFlags    |= BF_IGNORE;
+		huds.turnStick.buttonFlags    |= BF_IGNORE;
+		huds.turnRotor.buttonFlags    |= BF_IGNORE;
+		huds.fire.buttonFlags         |= BF_IGNORE;
+		huds.weaponSelect.buttonFlags |= BF_IGNORE;
+	} else {
+		huds.forwardStick.buttonFlags &= ~BF_IGNORE;
+		huds.sideStick.buttonFlags    &= ~BF_IGNORE;
+		huds.turnStick.buttonFlags    &= ~BF_IGNORE;
+		huds.turnRotor.buttonFlags    &= ~BF_IGNORE;
+		huds.fire.buttonFlags         &= ~BF_IGNORE;
+		huds.weaponSelect.buttonFlags &= ~BF_IGNORE;
+
+		extern cvar_t *controlScheme;
+		int scheme = controlScheme ? (int)controlScheme->value : 0;
+		HudSetForScheme(scheme);
 	}
-	
-	// don't process these in the update hud touch loop, because they will be
-	// handled with normal button calls
-	huds.menu.buttonFlags |= BF_HUDBUTTON;
-	huds.map.buttonFlags |= BF_HUDBUTTON;
-	
-	// don't make the big button click sound for the fire button
-	huds.fire.buttonFlags |= BF_SMALL_CLICK;
-	
 }
 
 void SnapSticks( ibutton_t *test, const ibutton_t *to ) {
