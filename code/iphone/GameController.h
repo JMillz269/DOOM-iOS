@@ -4,7 +4,6 @@
 //
 //  Created by John Watson on 1/29/15.
 //
-//
 
 /*
  
@@ -27,10 +26,18 @@
 #ifndef doomengine_GameController_h
 #define doomengine_GameController_h
 
-#define TURBOTHRESHOLD  0x32 // Lifted from iphone_async.cpp, as GameController also requires this constant
-#define ROTATETHRESHOLD 1500.0f // Replace magic number for scaling rotation
+#define TURBOTHRESHOLD  0x32
+#define ROTATETHRESHOLD 1500.0f
 
-bool iphoneControllerIsAvailable();
-void iphoneControllerInput(ticcmd_t* cmd);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+bool iphoneControllerIsAvailable(void);
+void iphoneControllerInput(ticcmd_t *cmd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
