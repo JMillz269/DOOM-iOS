@@ -1755,17 +1755,28 @@ void iphoneDrawScreen() {
 				}
 			} else if ( drawWeaponSelect ) {
 				DrawWeaponSelect();
-			} else {
-				// Hide on-screen sticks when an MFi controller is connected
-				HudUpdateControllerVisibility();
-
-				if ( drawControls->value && !iphoneControllerIsAvailable() ) {
+						} else {
+				if ( drawControls->value ) {
 					iphoneDrawHudControl( &huds.forwardStick );
 					iphoneDrawHudControl( &huds.sideStick );
 					iphoneDrawHudControl( &huds.turnStick );
 					iphoneDrawRotorControl( &huds.turnRotor );
 //					iphoneDrawHudControl( &huds.fire );
 				}
+                
+                if (!TARGET_OS_TV) {
+                    
+                    if ( HandleButton( &huds.menu ) ) {
+                        iphonePauseMusic();
+                        menuState = IPM_MAIN;
+                        iphoneMainMenu();
+                    }
+                    if ( HandleButton( &huds.map ) ) {
+                        AM_Start();
+                    }
+                    if ( HandleButton( &huds.fire ) ) {
+                    }
+                }
 
 #if !TARGET_OS_TV
 				if ( HandleButton( &huds.menu ) ) {
