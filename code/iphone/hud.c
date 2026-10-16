@@ -45,13 +45,22 @@ void SetHudPic( ibutton_t *hp, const char *image ) {
 void SetHudSpot( ibutton_t *hp, int x, int y, int dw, int dh ) {
 	hp->touch = NULL;
 
-	// Size from height so sticks stay circular on any aspect ratio
-	float scale = (float)displayheight / 320.0f;
+	float scaleX = (float)displaywidth  / 480.0f;
+	float scaleY = (float)displayheight / 320.0f;
+	float scale = (scaleX < scaleY) ? scaleX : scaleY;
+
+	// Cap so controls don't dominate high-res / LiveContainer sizes
+	if (scale > 2.5f) {
+		scale = 2.5f;
+	}
+	if (scale < 1.0f) {
+		scale = 1.0f;
+	}
+
 	float sdw = dw * scale;
 	float sdh = dh * scale;
 
-	// Map design coords (480x320) across the real framebuffer
-	// so left controls stay left and right stay right
+	// Map design 480x320 across the real screen (left stays left, right stays right)
 	float sx = ((float)x / 480.0f) * (float)displaywidth;
 	float sy = ((float)y / 320.0f) * (float)displayheight;
 
