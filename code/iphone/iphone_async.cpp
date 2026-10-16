@@ -541,6 +541,13 @@ static void iphoneBuildTiccmd(ticcmd_t* cmd) {
 		return;
 	}
 	
+// near the top of gameplay controls section, after menuState checks:
+if ( iphoneControllerIsAvailable() ) {
+    // External controller drives input; skip touch sticks
+    iphoneControllerInput(cmd);
+    return;
+}
+
 	// the respawn button triggers a use
 	if ( respawnActive ) {
 		cmd->buttons |= BT_USE;
