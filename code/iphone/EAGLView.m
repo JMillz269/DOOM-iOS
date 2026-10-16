@@ -162,10 +162,17 @@ CAEAGLLayer *eaglLayer;
     for (UITouch *myTouch in theTouches)
     {
         CGPoint touchLocation = [myTouch locationInView:self];
-        
-        // Scale Touches with the screen resolution.
-        touchLocation.x *= screenResolutionScale;
-        touchLocation.y *= screenResolutionScale;
+
+// Map view points → framebuffer pixels (works in LiveContainer and normal install)
+CGSize boundsSize = self.bounds.size;
+if (boundsSize.width > 0.0f && boundsSize.height > 0.0f) {
+    touchLocation.x *= ((float)backingWidth  / (float)boundsSize.width);
+    touchLocation.y *= ((float)backingHeight / (float)boundsSize.height);
+} else {
+    // Fallback if bounds not ready yet
+    touchLocation.x *= screenResolutionScale;
+    touchLocation.y *= screenResolutionScale;
+}
         
 		const int x = touchLocation.x;
 		const int y = touchLocation.y;
