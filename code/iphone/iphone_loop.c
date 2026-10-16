@@ -1754,13 +1754,15 @@ void iphoneDrawScreen() {
 			} else if ( drawWeaponSelect ) {
 				DrawWeaponSelect();
 			} else {
-				if ( drawControls->value ) {
-					iphoneDrawHudControl( &huds.forwardStick );
-					iphoneDrawHudControl( &huds.sideStick );
-					iphoneDrawHudControl( &huds.turnStick );
-					iphoneDrawRotorControl( &huds.turnRotor );
-//					iphoneDrawHudControl( &huds.fire );
-				}
+				// Keep touch HUD in sync with controller presence
+					HudUpdateControllerVisibility();
+
+		if ( drawControls->value && !iphoneControllerIsAvailable() ) {
+    iphoneDrawHudControl( &huds.forwardStick );
+    iphoneDrawHudControl( &huds.sideStick );
+    iphoneDrawHudControl( &huds.turnStick );
+    iphoneDrawRotorControl( &huds.turnRotor );
+}
                 
                 if (!TARGET_OS_TV) {
                     
