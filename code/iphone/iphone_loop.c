@@ -165,10 +165,15 @@ touch_t *UpdateHudTouch( ibutton_t *hud ) {
 	if ( !hud->touch ) {
 		// see if a free touch was just made in, or dragged into the bounds
 		// make the active boxes twice as large as the drawing bounds
-		int x = hud->x - ( hud->drawWidth >> 1 );
-		int y = hud->y - ( hud->drawHeight >> 1 );
-		int w = hud->drawWidth << 1;
-		int h = hud->drawHeight << 1;
+	 float xScale = HudPresentXScale();
+		float visW = hud->drawWidth * xScale;
+		float visH = hud->drawHeight;
+		float visX = hud->x + ( hud->drawWidth - visW ) * 0.5f;
+		float visY = hud->y;
+		int x = (int)( visX - visW * 0.5f );
+		int y = (int)( visY - visH * 0.5f );
+		int w = (int)( visW * 2.0f );
+		int h = (int)( visH * 2.0f );
 		
 		hud->touch = TouchInBounds( x, y, w, h );
         //printf("TIB: %d %d %d %d -> %s\n",x,y,w,h,(hud->touch == NULL) ? "none" : "found" );
@@ -274,6 +279,11 @@ boolean HandleButton( ibutton_t *button ) {
     
     // Hack
     button->drawHeight = button->drawWidth;
+	float xScale = HudPresentXScale();
+	float visW = button->drawWidth * xScale;
+	float visH = button->drawHeight;
+	float visX = button->x + ( button->drawWidth - visW ) * 0.5f;
+	float visY = button->y;
     
 	if ( ( button->buttonFlags & BF_TRANSPARENT ) && !button->touch ) {
 		// draw half-transparent
@@ -885,10 +895,24 @@ void iphoneDrawRotorControl( ibutton_t *hud ) {
 	
 	glBegin( GL_TRIANGLE_STRIP );
 	
-	glTexCoord2f( 0.0f, 0.0f );	glVertex2f( (cx - xv[0] - yv[0]), (cy - xv[1] - yv[1]) );
-	glTexCoord2f( tex->textureData->maxS, 0.0f );	glVertex2f( (cx + xv[0] - yv[0]), (cy + xv[1] - yv[1]) );
-	glTexCoord2f( 0.0f, tex->textureData->maxT );	glVertex2f( (cx - xv[0] + yv[0]), (cy - xv[1] + yv[1]) );
-	glTexCoord2f( tex->textureData->maxS, tex->textureData->maxT );	glVertex2f( (cx + xv[0] + yv[0]), (cy + xv[1] + yv[1]) );
+		float xScale = HudPresentXScale();
+	float x0 = (cx - xv[0] - yv[0]);
+	float y0 = (cy - xv[1] - yv[1]);
+	float x1 = (cx + xv[0] - yv[0]);
+	float y1 = (cy + xv[1] - yv[1]);
+	float x2 = (cx - xv[0] + yv[0]);
+	float y2 = (cy - xv[1] + yv[1]);
+	float x3 = (cx + xv[0] + yv[0]);
+	float y3 = (cy + xv[1] + yv[1]);
+	x0 = cx + (x0 - cx) * xScale;
+	x1 = cx + (x1 - cx) * xScale;
+	x2 = cx + (x2 - cx) * xScale;
+	x3 = cx + (x3 - cx) * xScale;
+
+	glTexCoord2f( 0.0f, 0.0f );	glVertex2f( x0, y0 );
+	glTexCoord2f( tex->textureData->maxS, 0.0f );	glVertex2f( x1, y1 );
+	glTexCoord2f( 0.0f, tex->textureData->maxT );	glVertex2f( x2, y2 );
+	glTexCoord2f( tex->textureData->maxS, tex->textureData->maxT );	glVertex2f( x3, y3 );
 
     /*
     glTexCoord2f( 0.0f, 0.0f );    glVertex2f( cx - xv[0] - yv[0], cy - xv[1] - yv[1] );
@@ -903,14 +927,12 @@ void iphoneDrawRotorControl( ibutton_t *hud ) {
 //===================================================================================
 
 
-
-
 void iphoneDrawHudControl( ibutton_t *hud ) {
-    
+
     if (TARGET_OS_TV) {
         return;
     }
-    
+
 	if ( hud->buttonFlags & BF_IGNORE ) {
 		return;
 	}
@@ -918,28 +940,26 @@ void iphoneDrawHudControl( ibutton_t *hud ) {
 		return;
 	}
 	if ( hud->drawAsLimit ) {
-		// green tint when at maximum displacement
 		glColor4f(0.5,1,0.5,1);
 	} else if ( hud->touch || ( hud->buttonFlags & BF_DRAW_ACTIVE ) ) {
-		// red tint when active
 		glColor4f(1,0.5,0.5,1);
 	} else {
 		glColor4f(1,1,1,1);
-	}	
+	}
 	if ( hud->scale <= 0 ) {
 		hud->scale = 1.0f;
 	}
-	float w = hud->drawWidth * hud->scale;
+
+	float xScale = HudPresentXScale();
+	float w = hud->drawWidth * hud->scale * xScale;
 	float h = hud->drawHeight * hud->scale;
 	float x = hud->x + ( hud->drawWidth - w ) * 0.5f;
-	float y = hud->y + ( hud->drawHeight - w ) * 0.5f;
-	
+	float y = hud->y + ( hud->drawHeight - h ) * 0.5f;
+
 	if ( centerSticks->value && hud->touch ) {
-		// reposiition the control after each touch
 		x = hud->touch->x - w*0.5f;
 		y = hud->touch->y - h*0.5f;
 	}
-    
 
 	PK_StretchTexture( hud->texture, x, y, w, h );
 	glColor4f(1,1,1,1);
