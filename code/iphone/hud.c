@@ -40,6 +40,26 @@ void SetHudPic( ibutton_t *hp, const char *image ) {
 	hp->touch = NULL;
 }
 
+float HudPresentXScale( void ) {
+	if ( displaywidth < 1 || displayheight < 1 ) {
+		return 1.0f;
+	}
+	if ( g_viewBoundsWidth < 1.0f || g_viewBoundsHeight < 1.0f ) {
+		return 1.0f;
+	}
+	if ( g_presentScaleX < 0.01f || g_presentScaleY < 0.01f ) {
+		return 1.0f;
+	}
+
+	float bufferAspect = (float)displaywidth / (float)displayheight;
+	float viewAspect = g_viewBoundsWidth / g_viewBoundsHeight;
+	float s = ( bufferAspect / viewAspect ) * ( g_presentScaleY / g_presentScaleX );
+	if ( s < 0.05f || s > 20.0f ) {
+		return 1.0f;
+	}
+	return s;
+}
+
 void SetHudSpot( ibutton_t *hp, int x, int y, int dw, int dh ) {
 	hp->touch = NULL;
 
