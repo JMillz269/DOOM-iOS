@@ -1,0 +1,46 @@
+name: Build iOS (DOOM II)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Create placeholder WAD
+        run: |
+          mkdir -p base
+          touch base/doom2.wad
+
+      - name: Build
+        run: |
+          xcodebuild \
+            -project code/iphone/DOOM.xcodeproj \
+            -scheme DOOM2-iOS \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            GCC_PREPROCESSOR_DEFINITIONS="HAVE_CONFIG_H IPHONE _SAMPLE_RATE_22050 EAS_WT_SYNTH _8_BIT_SAMPLES _REVERB_ENABLED _CHORUS_ENABLED _FILTER_ENABLED MAX_SYNTH_VOICES=32 NUM_OUTPUT_CHANNELS=2 UNIFIED_DEBUG_MESSAGES DLS_SYNTHESIZER GAME_DOOM2 GLES_SILENCE_DEPRECATION"
+
+      - name: Create unsigned ipa
+        run: |
+          rm -rf Payload
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/*.app Payload/
+          /usr/bin/zip -r Doom2.ipa Payload
+
+      - name: Upload ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: Doom2.ipa
+          path: Doom2.ipa
+          compression-level: 0
