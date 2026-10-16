@@ -1748,7 +1748,6 @@ if (!TARGET_OS_TV) {
 					    players[consoleplayer].playerstate = PST_REBORN;
 						addGear = true;
 					}
-#endif
 				} else {
 					static ibutton_t btnNetRespawn;
 					if ( !btnNetRespawn.texture ) {
