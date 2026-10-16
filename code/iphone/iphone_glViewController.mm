@@ -71,11 +71,11 @@ static bool inTransition = false;
     if (self) {
         
         // Create the OpenGL View.
-#if TARGET_OS_TV
-        EAGLView *glView = [[EAGLView alloc] initWithFrame:[UIScreen mainScreen].bounds];
-#else
-        EAGLView *glView = [[EAGLView alloc] initWithFrame:[UIScreen mainScreen].bounds];
-#endif
+        CGRect sb = [UIScreen mainScreen].bounds;
+        CGFloat longSide  = MAX( sb.size.width, sb.size.height );
+        CGFloat shortSide = MIN( sb.size.width, sb.size.height );
+        EAGLView *glView = [[EAGLView alloc] initWithFrame:CGRectMake( 0, 0, longSide, shortSide )];
+
         self.view = glView;
         [glView release];
         
