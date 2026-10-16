@@ -53,23 +53,6 @@ void SetHudSpot( ibutton_t *hp, int x, int y, int dw, int dh ) {
 	float sdw = dw * scale;
 	float sdh = dh * scale;
 
-	/*
-	 * LiveContainer often presents the GL layer with a different aspect
-	 * than the framebuffer. Squares then look like ovals.
-	 * Compensate so controls stay circular after the container stretches.
-	 */
-	if (g_viewBoundsWidth > 1.0f && g_viewBoundsHeight > 1.0f &&
-	    displaywidth > 0 && displayheight > 0) {
-		float bufferAspect = (float)displaywidth / (float)displayheight;
-		float viewAspect   = g_viewBoundsWidth / g_viewBoundsHeight;
-		if (viewAspect > 0.01f) {
-			float xStretch = viewAspect / bufferAspect;
-			if (xStretch > 0.01f) {
-				sdw = sdw / xStretch;
-			}
-		}
-	}
-
 	float sx = ((float)x / 480.0f) * (float)displaywidth;
 	float sy = ((float)y / 320.0f) * (float)displayheight;
 
